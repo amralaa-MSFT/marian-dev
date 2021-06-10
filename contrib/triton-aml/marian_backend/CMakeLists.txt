@@ -19,7 +19,7 @@ set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/co
 set(TRITON_BACKEND_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/backend repo")
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 #
