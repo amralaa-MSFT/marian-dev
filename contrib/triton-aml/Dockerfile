@@ -99,5 +99,5 @@ RUN cd build && \
     cmake -DTRITON_BACKEND_REPO_TAG=ccd6883947d384e21bc3f1ef7130170c6aa341c6 \
           -DTRITON_CORE_REPO_TAG=c2a3825e67aaf8413e8436b8eec44f21bc4bdac6 \
           -DTRITON_COMMON_REPO_TAG=044e5145c5b3ec7290b395e257a0dde5678e85f2 \ 
-          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install .. && make install
