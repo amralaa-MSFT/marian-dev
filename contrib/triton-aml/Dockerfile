@@ -5,7 +5,7 @@ RUN apt-get install -y curl git autoconf automake libtool curl make g++ unzip cm
 RUN apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 
-# install zlib
+# install zlb
 WORKDIR /
 RUN git clone --no-checkout https://github.com/madler/zlib
 WORKDIR /zlib
@@ -47,9 +47,9 @@ RUN echo "$CACHEBUST"
 # RUN git clone --no-checkout https://github.com/marian-nmt/marian-dev
 RUN git clone --no-checkout https://github.com/amralaa-MSFT/marian-dev
 WORKDIR marian-dev
-# RUN git checkout youki/quantize-embedding
+RUN git checkout youki/quantize-embedding
 # RUN git checkout dad48865fd3b7f1d7b891de81040f7651e824510
-RUN git checkout amralaa/quantize-embedding-debug
+# RUN git checkout amralaa/quantize-embedding-debug
 RUN mkdir src/static
 RUN mkdir build
 COPY src/cmarian.cpp /marian-dev/src/static
