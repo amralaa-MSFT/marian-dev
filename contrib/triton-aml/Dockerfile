@@ -63,7 +63,7 @@ RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_BUILD_TYPE=Debug -DCOMPILE_CPU=on 
 RUN make -j $(grep -c ^processor /proc/cpuinfo)
 
 # build cmarian static library
-FROM nvcr.io/nvidia/tritonserver:20.09-py3
+FROM nvcr.io/nvidia/tritonserver:21.05-py3
 RUN mkdir -p /marian-dev/build/src/3rd_party/sentencepiece/src
 COPY --from=BUILDER /usr/lib/libprotobuf.a /usr/lib
 COPY --from=BUILDER /usr/lib/libboost_system.a /usr/lib
