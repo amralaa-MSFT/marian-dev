@@ -11,5 +11,5 @@ docker build -t "$image_name" --build-arg CACHEBUST="$(git rev-parse HEAD)" .
 echo Copying artifacts ...
 
 docker container create --name extract "$image_name"
-docker container cp extract:/opt/tritonserver/marian_backend/build/libtriton_marian.so .
+docker container cp extract:/opt/tritonserver/marian_backend/build/libtriton_marian.so ./libtriton_marian."$image_name".so
 docker container rm -f extract
