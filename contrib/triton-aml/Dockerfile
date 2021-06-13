@@ -5,7 +5,7 @@ RUN apt-get install -y curl git autoconf automake libtool curl make g++ unzip cm
 RUN apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 
-# install zlb
+# install zlib
 WORKDIR /
 RUN git clone --no-checkout https://github.com/madler/zlib
 WORKDIR /zlib
@@ -49,8 +49,8 @@ RUN git clone --no-checkout https://github.com/amralaa-MSFT/marian-dev
 WORKDIR marian-dev
 # RUN git checkout youki/quantize-embedding
 # RUN git checkout dad48865fd3b7f1d7b891de81040f7651e824510
-# RUN git checkout amralaa/quantize-embedding-debug
-RUN git checkout amralaa/quantize-embedding
+RUN git checkout amralaa/quantize-embedding-debug
+# RUN git checkout amralaa/quantize-embedding
 RUN mkdir src/static
 RUN mkdir build
 COPY src/cmarian.cpp /marian-dev/src/static
@@ -59,7 +59,7 @@ RUN rm src/CMakeLists.txt
 COPY src/CMakeLists.txt /marian-dev/src
 
 WORKDIR /marian-dev/build
-RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off -DCOMPILE_SERVER=off -DUSE_FBGEMM=on -DCUDA_cublas_device_LIBRARY=/usr/lib/x86_64-linux-gnu/libcublas.so
+RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off -DCOMPILE_SERVER=off -DUSE_FBGEMM=on -DCUDA_cublas_device_LIBRARY=/usr/lib/x86_64-linux-gnu/libcublas.so
 RUN make -j $(grep -c ^processor /proc/cpuinfo)
 
 # build cmarian static library
@@ -97,5 +97,5 @@ ADD marian_backend /opt/tritonserver/marian_backend
 WORKDIR /opt/tritonserver/marian_backend
 RUN mkdir build
 RUN cd build && \
-    cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install .. && \
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install .. && \
     make install
