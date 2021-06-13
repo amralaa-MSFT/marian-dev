@@ -6,7 +6,7 @@ set -eu
 echo Building Triton Marian backend ...
 
 image_name='triton-marian-builder:20.09'
-docker build -t "$image_name" --build-arg CACHEBUST="$(date --utc +%s)" .
+docker build -t "$image_name" --build-arg CACHEBUST="$(git rev-parse HEAD)" .
 
 echo Copying artifacts ...
 
