@@ -60,7 +60,7 @@ RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STA
 RUN make -j $(grep -c ^processor /proc/cpuinfo)
 
 # build cmarian static library
-FROM nvcr.io/nvidia/tritonserver:21.05-py3
+FROM nvcr.io/nvidia/tritonserver:20.09-py3
 RUN mkdir -p /marian-dev/build/src/3rd_party/sentencepiece/src
 COPY --from=BUILDER /usr/lib/libprotobuf.a /usr/lib
 COPY --from=BUILDER /usr/lib/libboost_system.a /usr/lib
