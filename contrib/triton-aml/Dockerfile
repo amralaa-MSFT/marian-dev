@@ -51,7 +51,6 @@ WORKDIR marian-dev
 # RUN git checkout dad48865fd3b7f1d7b891de81040f7651e824510
 RUN git checkout amralaa/quantize-embedding-debug
 # RUN git checkout amralaa/quantize-embedding
-RUN git submodule update --init --recursive
 RUN mkdir src/static
 RUN mkdir build
 COPY src/cmarian.cpp /marian-dev/src/static
