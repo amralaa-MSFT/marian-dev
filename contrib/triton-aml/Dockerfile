@@ -49,7 +49,7 @@ RUN git clone --no-checkout https://github.com/amralaa-MSFT/marian-dev
 WORKDIR marian-dev
 # RUN git checkout amralaa/master
 RUN git checkout youki/quantize-embedding
-RUN git checkout dad48865fd3b7f1d7b891de81040f7651e824510
+# RUN git checkout dad48865fd3b7f1d7b891de81040f7651e824510
 RUN mkdir src/static
 RUN mkdir build
 COPY src/cmarian.cpp /marian-dev/src/static
