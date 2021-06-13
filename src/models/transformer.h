@@ -870,7 +870,7 @@ public:
     // By default the operations are empty, but with prenorm (--transformer-preprocess n --transformer-postprocess da) 
     // it is recommended to normalize here. Can also be used to add a skip connection from the very bottom if requested.
     auto opsTop = opt<std::string>("transformer-postprocess-top", "");
-    query = postProcess(prefix_ + "_top", opsTop, query, prevQuery, dropProb);
+    // query = postProcess(prefix_ + "_top", opsTop, query, prevQuery, dropProb);
 
     auto decoderContext = transposeTimeBatch(query); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
 
