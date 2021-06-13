@@ -1,4 +1,8 @@
 #!/bin/sh
+
+set -xv
+set -eu
+
 echo Building Triton Marian backend ...
 
 image_name='triton-marian-builder-only:21.09-debug'
