@@ -54,7 +54,7 @@ RUN rm src/CMakeLists.txt
 COPY src/CMakeLists.txt /marian-dev/src
 
 WORKDIR /marian-dev/build
-RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off -DCOMPILE_SERVER=off -DUSE_FBGEMM=on -DCUDA_cublas_device_LIBRARY=/usr/lib/x86_64-linux-gnu/libcublas.so
+RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off -DCOMPILE_SERVER=off -DUSE_FBGEMM=on -DCUDA_cublas_device_LIBRARY=/usr/lib/x86_64-linux-gnu/libcublas.so -DCMAKE_BUILD_TYPE=Debug
 RUN make -j $(grep -c ^processor /proc/cpuinfo)
 
 # build cmarian static library
@@ -92,5 +92,5 @@ ADD marian_backend /opt/tritonserver/marian_backend
 WORKDIR /opt/tritonserver/marian_backend
 RUN mkdir build
 RUN cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install .. && \
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install -DCMAKE_BUILD_TYPE=Debug .. && \
     make install
