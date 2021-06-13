@@ -1,7 +1,7 @@
 #!/bin/sh
 
 set -xv
-set -eu
+# set -eu
 
 echo Building Triton Marian backend ...
 
