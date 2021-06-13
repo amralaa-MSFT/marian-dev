@@ -5,7 +5,7 @@ set -eu
 
 echo Building Triton Marian backend ...
 
-image_name='triton-marian-builder-only:21.09-debug'
+image_name='triton-marian-builder-only:20.05-debug'
 docker build -t "$image_name" .
 
 echo Copying artifacts ...
