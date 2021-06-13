@@ -46,7 +46,7 @@ WORKDIR /
 RUN git clone --no-checkout https://github.com/amralaa-MSFT/marian-dev
 WORKDIR marian-dev
 RUN git checkout debug
-RUN git checkout 8626fb46ef95e14bc2e023ea2e50a5c2277f13fe
+RUN git checkout 1f22bed397f7d0d5f5ec723aa48c2ac7b65783ab
 # RUN git checkout youki/quantize-embedding
 # RUN git checkout dad48865fd3b7f1d7b891de81040f7651e824510
 RUN mkdir src/static
