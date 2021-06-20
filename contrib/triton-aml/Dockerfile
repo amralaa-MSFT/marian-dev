@@ -45,6 +45,7 @@ WORKDIR /
 RUN git clone --no-checkout https://github.com/amralaa-MSFT/marian-dev.git
 WORKDIR marian-dev
 RUN git checkout async_return_debug
+RUN git checkout 4cdd3ee7d753b40271ab2071a9da0a6689e55b79
 RUN mkdir src/static
 RUN mkdir build
 COPY src/cmarian.cpp /marian-dev/src/static
