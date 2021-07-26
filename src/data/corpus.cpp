@@ -298,7 +298,8 @@ CorpusBase::batch_ptr Corpus::toBatch(const std::vector<Sample>& batchVector) {
   // std::vector<size_t> words(maxDims.size(), 0); // Hossam's branch
   std::vector<size_t> words(maxWordsInBatchSentence.size(), 0); // async branch
   for(size_t b = 0; b < batchSize; ++b) {                    // loop over batch entries
-    for(size_t j = 0; j < maxDims.size(); ++j) {             // loop over streams
+    // for(size_t j = 0; j < maxDims.size(); ++j) {             // loop over streams // Hossam's branch
+    for(size_t j = 0; j < maxWordsInBatchSentence.size(); ++j) {             // loop over streams // async branch
       auto subBatch = subBatches[j];
       for(size_t s = 0; s < batchVector[b][j].size() - 3; ++s) { // loop over word positions
         subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = batchVector[b][j][s];
