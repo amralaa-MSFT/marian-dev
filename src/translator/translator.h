@@ -144,6 +144,10 @@ public:
           scorers = scorers_[id % numDevices_];
         }
 
+
+        // LOG(info, "translator.h trying to debug the batch ");
+        // batch->debug(true);
+
         auto search = New<Search>(options_, scorers, trgVocab_);
         auto histories = search->search(graph, batch);
 
@@ -243,6 +247,8 @@ public:
     auto inputs = options_->get<bool>("tsv", false)
                       ? convertTsvToLists(input, options_->get<size_t>("tsv-fields", 1))
                       : std::vector<std::string>({input});
+
+    LOG(info, "[Hossam translator.h] Run method with output and input={} one input={}", input, inputs[0]);
     auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
 

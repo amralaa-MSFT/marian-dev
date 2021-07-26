@@ -28,7 +28,11 @@ public:
     if(beam.back()->getPrevHyp() != nullptr) { // if not start hyp do
       for(size_t beamIdx = 0; beamIdx < beam.size(); ++beamIdx)
         if(beam[beamIdx]->getWord() == trgEosId || last) { // if this is a final hyp do
+#if 0
           float pathScore = (beam[beamIdx]->getPathScore() - wordPenalty(history_.size())) / lengthPenalty(history_.size()); // get and normalize path score
+#else // ZCode2.0 Mainz inference do not normalize the scores
+         float pathScore = beam[beamIdx]->getPathScore();
+#endif
           topHyps_.push({history_.size(), beamIdx, pathScore}); // push final hyp on queue of scored hyps
         }
     }

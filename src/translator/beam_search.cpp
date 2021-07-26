@@ -7,6 +7,10 @@
 #include "translator/nth_element.h"
 #include "data/shortlist.h"
 
+// Hossam
+#include <iostream>
+using namespace std;
+
 namespace marian {
 
 // combine new expandedPathScores and previous beams into new set of beams
@@ -297,10 +301,11 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
 
   // We will use the prefix "origBatch..." whenever we refer to batch dimensions of the original batch. These do not change during search.
   // We will use the prefix "currentBatch.." whenever we refer to batch dimension that can change due to batch-pruning.
-  const int origDimBatch = (int)batch->size();
+  const int origDimBatch = (int)batch->size(); 
   const auto trgEosId = trgVocab_->getEosId();
   const auto trgUnkId = trgVocab_->getUnkId();
 
+  // beamSize_ is the size of the beam (k in the book)
   auto getNBestList = createGetNBestListFn(beamSize_, origDimBatch, graph->getDeviceId());
   allocator_ = graph->getTensorAllocator();
 
@@ -410,6 +415,9 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
               auto word = hyp->getWord();
               auto canExpand = (!factoredVocab || factoredVocab->canExpandFactoredWord(hyp->getWord(), factorGroup));
               //LOG(info, "[{}, {}] Can expand {} with {} -> {}", batchIdx, beamHypIdx, (*batch->back()->vocab())[hyp->getWord()], factorGroup, canExpand);
+              // LOG(info, "[{}, {}] Can expand {} id {} with {} -> {}", 12, beamHypIdx, (*batch->back()->vocab())[hyp->getWord()], word.toWordIndex(),
+              //   factorGroup, canExpand);
+              // LOG(info, "[{}] Can expand {} id {} ", factorGroup, canExpand, word.toWordIndex());
               anyCanExpand |= canExpand;
 
               auto currentBatchIdx = origBatchIdx;
@@ -458,9 +466,14 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
           //  - returns vector of prediction probabilities over output vocab via newState
           // update state in-place for next output time step
           //if (t > 0) for (size_t kk = 0; kk < prevWords.size(); kk++)
-          //  LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup,
-          //      factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]],
-          //      prevScores[kk]);
+          // LOG(info, "$see$ prevWords[{},{}]={} -> {} id2 {}", t/numFactorGroups, factorGroup,
+          //     factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]], 12,
+          //     prevWords[kk].toWordIndex());
+          // LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup,
+          //      factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]], 12);
+           // LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup,
+           //     factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]], prevScores[kk]);
+
           states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, batchIndices, (int)maxBeamSize);
           if (numFactorGroups == 1) { // @TODO: this branch can go away
             logProbs = states[i]->getLogProbs().getLogits(); // [maxBeamSize, 1, currentDimBatch, dimVocab]
@@ -483,16 +496,16 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
         }
         // expand all hypotheses, [maxBeamSize, 1, currentDimBatch, 1] -> [maxBeamSize, 1, currentDimBatch, dimVocab]
         expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
-      }
+      } // end for(size_t i = 0; i < scorers_.size(); ++i)
 
       // make beams continuous
       expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [currentDimBatch, 1, maxBeamSize, dimVocab]
 
-      // perform NN computation
-      if(t == 0 && factorGroup == 0)
-        graph->forward();
-      else
-        graph->forwardNext();
+        // perform NN computation
+        if(t == 0 && factorGroup == 0)
+          graph->forward();
+        else
+          graph->forwardNext();
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
@@ -503,6 +516,27 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
 
       //**********************************************************************
       // perform beam search
+      // Hossam
+      if (false) {
+        Expr logits_swap = swapAxes(logProbs, 0, 2);
+        // debug(logProbs, "Hossam debug logits");
+        const float* lg = logits_swap->val()->data();
+        float sum = 0;
+        for(int c=0; c < 250056; ++c)
+        {
+          sum += lg[c];
+        }
+        // debug(logits_swap, "Hossam debug logits");
+        ofstream myfile;
+        int sId = 0;
+        
+        std::string f_name = "logits_" + to_string(sId) + ".txt"; 
+        std::string p = "/home/csalt/data/v-hossamamer/internal-marian-dev/marian-dev/debug_logits/";
+        f_name = p + f_name;
+        myfile.open (f_name.c_str(), ios::out | ios::app);
+        myfile << std::setprecision(4) << sum << "\n";
+        myfile.close();
+      }
 
       // find N best amongst the (maxBeamSize * dimVocab) hypotheses
       std::vector<unsigned int> nBestKeys; // [currentDimBatch, maxBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened

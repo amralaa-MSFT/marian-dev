@@ -281,7 +281,9 @@ CorpusBase::batch_ptr Corpus::toBatch(const std::vector<Sample>& batchVector) {
     subBatches.emplace_back(New<SubBatch>(batchSize, maxWordsInBatchSentence[j], vocabs_[j]));
   }
 
-  std::vector<size_t> words(maxWordsInBatchSentence.size(), 0);
+#if 0
+  // std::vector<size_t> words(maxDims.size(), 0); // Hossam's branch
+  std::vector<size_t> words(maxWordsInBatchSentence.size(), 0); // async branch
   for(size_t b = 0; b < batchSize; ++b) {                    // loop over batch entries
     for(size_t j = 0; j < maxWordsInBatchSentence.size(); ++j) {             // loop over streams
       auto subBatch = subBatches[j];
@@ -292,6 +294,49 @@ CorpusBase::batch_ptr Corpus::toBatch(const std::vector<Sample>& batchVector) {
       }
     }
   }
+#else // Consistent with Mainz/PyLearn for ZCode2.0 Large release model
+  // std::vector<size_t> words(maxDims.size(), 0); // Hossam's branch
+  std::vector<size_t> words(maxWordsInBatchSentence.size(), 0); // async branch
+  for(size_t b = 0; b < batchSize; ++b) {                    // loop over batch entries
+    for(size_t j = 0; j < maxDims.size(); ++j) {             // loop over streams
+      auto subBatch = subBatches[j];
+      for(size_t s = 0; s < batchVector[b][j].size() - 3; ++s) { // loop over word positions
+        subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = batchVector[b][j][s];
+        subBatch->mask()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = 1.f;
+        words[j]++;
+      }
+     
+      // Add EOS with no masking 
+      size_t s = batchVector[b][j].size() - 3;
+      // subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = batchVector[b][j][s];
+      subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = batchVector[b][j][batchVector[b][j].size() - 1];
+      subBatch->mask()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = 1.f;
+      // LOG(info, "Hossam debug indices word id ADD {} loc {} true {}", batchVector[b][j][s].toWordIndex(),
+      //  subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s),
+	// subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/].toWordIndex());
+      words[j]++;
+	
+      // Add the lang id
+      s = batchVector[b][j].size() - 2;
+      subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = batchVector[b][j][s];
+      subBatch->mask()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = 1.f;
+      // LOG(info, "Hossam debug indices word id ADD {} loc {} true {}", batchVector[b][j][s].toWordIndex(),
+      //  subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s),
+	// subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/].toWordIndex());
+      words[j]++;
+	
+      // Add EOS with masking
+      s = batchVector[b][j].size() - 1;
+      subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = batchVector[b][j][s];
+      subBatch->mask()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = 0.f;
+      // LOG(info, "Hossam debug indices word id ADD {} loc {} true {}", batchVector[b][j][s].toWordIndex(),
+      //  subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s),
+	// subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/].toWordIndex());
+      words[j]++;
+      
+    }
+  }
+#endif
 
   for(size_t j = 0; j < maxWordsInBatchSentence.size(); ++j)
     subBatches[j]->setWords(words[j]);

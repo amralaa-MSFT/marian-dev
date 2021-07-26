@@ -3,6 +3,10 @@
 
 #pragma once
 
+// TODO: Get token id from vocab
+// ZCode2.0 Large defines the start of the positional embedding signal as token id 2
+#define POSITIONAL_EMBEDDING_START 2
+
 #include "marian.h"
 
 #include "layers/constructors.h"
@@ -13,6 +17,9 @@
 #include "rnn/constructors.h"
 #define _USE_MATH_DEFINES  // enables math constants. We need M_PI_2
 #include <math.h>
+
+#include <iostream>
+using namespace std;
 
 namespace marian {
 
@@ -92,8 +99,12 @@ public:
       // according to paper embeddings are scaled up by \sqrt(d_m)
       embeddings = std::sqrt((float)dimEmb) * embeddings; // embeddings were initialized to unit length; so norms will be in order of sqrt(dimEmb)
 
-#ifdef USE_ONNX // TODO 'Sin' op and constant sine generate different result. So, use constant when 'USE_ONNX' is not defined for now.
+
+// #ifdef USE_ONNX // TODO 'Sin' op and constant sine generate different result. So, use constant when 'USE_ONNX' is not defined for now.
+#if 0 // TODO 'Sin' op and constant sine generate different result. So, use constant when 'USE_ONNX' is not defined for now.
       // precompute the arguments to sin() (the cos(x) are expressed as sin(x+pi/2))
+      // Define the start of the positional embedding
+      start = POSITIONAL_EMBEDDING_START;
       if (sinusoidalEmbeddingsFreq_.empty()) {
         auto numTimescales = dimEmb / 2;
         for (size_t i = 0; i < dimEmb; i++) {
@@ -107,6 +118,8 @@ public:
       positionRange->set_name("data_" + std::to_string(batchIndex_) + "_posrange");
       auto signal = sin(positionRange * frequencies + cosOffsets);
 #else // USE_ONNX
+      // Define the start of the positional embedding
+      start = POSITIONAL_EMBEDDING_START + start;
       auto signal = graph_->constant({dimWords, 1, dimEmb},
                                      inits::sinusoidalPositionEmbeddings(start));
 #endif // USE_ONNX
@@ -238,13 +251,10 @@ public:
                  Expr mask = nullptr, // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
                  bool saveAttentionWeights = false,
                  int dimBeam = 1) {
-    int dk = k->shape()[-1];
+    
+    // Set the scale to 1 because you already scaled the queries in the start
+    float scale = 1.0f;
 
-    // softmax over batched dot product of query and keys (applied over all
-    // time steps and batch entries), also add mask for illegal connections
-
-    // multiplicative attention with flattened softmax
-    float scale = 1.0f / std::sqrt((float)dk); // scaling to avoid extreme values due to matrix multiplication
     auto z = bdot(q, k, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
 
     // mask out garbage beyond end of sequences
@@ -273,13 +283,26 @@ public:
                  const Expr &values, // [-4: beam depth, -3: batch size, -2: max kv length, -1: vector dim]
                  const Expr &mask,   // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
                  bool cache = false,
+                 bool running_self_attention = true, // running the self attention
                  bool saveAttentionWeights = false) {
     int dimModel = q->shape()[-1];
     // @TODO: good opportunity to implement auto-batching here or do something manually?
     auto Wq = graph_->param(prefix + "_Wq", {dimModel, dimModel}, inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f));
     auto bq = graph_->param(prefix + "_bq", {       1, dimModel}, inits::zeros());
     auto qh = affine(q, Wq, bq);
+	
+    // Define the scaling as ZCodeV2.0 Large
+    double selfScaling = pow(dimModel / dimHeads, -0.5);
+    qh                 = qh * selfScaling;
     qh = SplitHeads(qh, dimHeads); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
+
+// TODO: Remove
+#if 0
+    if(running_self_attention)
+      debug(q, " Debug self attention Original Query Sent to $method$");
+    else
+      debug(q, " Debug self attention Original Query Sent to $method$ $cross-attention$");
+#endif
 
     Expr kh;
     // Caching transformation of the encoder that should not be created again.
@@ -294,7 +317,19 @@ public:
       auto Wk = graph_->param(prefix + "_Wk", {dimModel, dimModel}, inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f));
       auto bk = graph_->param(prefix + "_bk", {1,        dimModel}, inits::zeros());
 
-      kh = affine(keys, Wk, bk);     // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+      if(running_self_attention)
+      {
+        float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
+        auto opsPre = opt<std::string>("transformer-preprocess");
+        kh = preProcess(prefix + "_Wo", opsPre, keys, dropProb);      
+        kh = affine(kh, Wk, bk);     // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+
+      }
+      else
+      {
+        kh = affine(keys, Wk, bk);     // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+      }
+
       kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
       cache_[prefix + "_keys"] = kh;
     }
@@ -308,7 +343,18 @@ public:
       auto Wv = graph_->param(prefix + "_Wv", {dimModel, dimModel}, inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f));
       auto bv = graph_->param(prefix + "_bv", {1,        dimModel}, inits::zeros());
 
-      vh = affine(values, Wv, bv); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+      if(running_self_attention)
+      {
+        float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
+        auto opsPre = opt<std::string>("transformer-preprocess");
+        vh = preProcess(prefix + "_Wo", opsPre, values, dropProb); 
+        vh = affine(vh, Wv, bv); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+      }
+      else
+      {
+        vh = affine(values, Wv, bv); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+      }
+
       vh = SplitHeads(vh, dimHeads);
       cache_[prefix + "_values"] = vh;
     }
@@ -362,6 +408,7 @@ public:
                       const Expr& mask,   // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
                       int dimHeads,
                       bool cache = false,
+                      bool running_self_attention = true,
                       bool saveAttentionWeights = false) {
     int dimModel = input->shape()[-1];
 
@@ -369,8 +416,7 @@ public:
     auto opsPre = opt<std::string>("transformer-preprocess");
     auto output = preProcess(prefix + "_Wo", opsPre, input, dropProb);
 
-    // multi-head self-attention over previous input
-    output = MultiHead(prefix, dimModel, dimHeads, output, keys, values, mask, cache, saveAttentionWeights);
+    output = MultiHead(prefix, dimModel, dimHeads, output, keys, values, mask, cache, running_self_attention, saveAttentionWeights);
     
     auto opsPost = opt<std::string>("transformer-postprocess");
     output = postProcess(prefix + "_Wo", opsPost, output, input, dropProb);
@@ -391,11 +437,28 @@ public:
       values = concatenate({prevdecoderLayerState.output, input}, /*axis=*/-2);
     }
     decoderLayerState.output = values;
-
+    
     return LayerAttention(prefix, input, values, values, selfMask,
                           opt<int>("transformer-heads"), /*cache=*/false);
   }
 
+// <<<<<<< HEAD
+//   static inline
+//   std::function<Expr(Expr)> activationByName(const std::string& actName)
+//   {
+//     if (actName == "relu")
+//       return (ActivationFunction*)relu;
+//     else if (actName == "swish")
+//       return (ActivationFunction*)swish;
+//     else if (actName == "gelu")
+//       return (ActivationFunction*)gelu;
+//     ABORT("Invalid activation name '{}'", actName);
+//   }
+
+//   Expr LayerFFN(std::string prefix, Expr input) const {
+// =======
+//   Expr LayerFFN(std::string prefix, Expr input, bool running_encoder = true) const {
+// >>>>>>> c9b33854 (Add changes from Hossam's branch)
   static inline
   std::function<Expr(Expr)> activationByName(const std::string& actName)
   {
@@ -408,7 +471,8 @@ public:
     ABORT("Invalid activation name '{}'", actName);
   }
 
-  Expr LayerFFN(std::string prefix, Expr input) const {
+  // Expr LayerFFN(std::string prefix, Expr input) const { // async branch
+  Expr LayerFFN(std::string prefix, Expr input, bool running_encoder = true) const { // Hossam's branch
     int dimModel = input->shape()[-1];
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
@@ -427,6 +491,18 @@ public:
     auto initFn = inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f);
 
     // the stack of FF layers
+// <<<<<<< HEAD
+//     for(int i = 1; i < depthFfn; ++i) {
+//       if (actName == "relu") {
+//         output = denseInlineRelu(output, prefix, std::to_string(i), dimFfn, initFn, ffnDropProb);
+//       } else {
+//         output = denseInline(output, prefix, /*suffix=*/std::to_string(i), dimFfn, initFn, actFn, ffnDropProb);
+//       }
+//     }
+// =======
+//     for(int i = 1; i < depthFfn; ++i)
+//         output = denseInline(output, prefix, /*suffix=*/std::to_string(i), dimFfn, initFn, actName, ffnDropProb);
+// >>>>>>> c9b33854 (Add changes from Hossam's branch)
     for(int i = 1; i < depthFfn; ++i) {
       if (actName == "relu") {
         output = denseInlineRelu(output, prefix, std::to_string(i), dimFfn, initFn, ffnDropProb);
@@ -435,6 +511,13 @@ public:
       }
     }
     output = denseInline(output, prefix, /*suffix=*/std::to_string(depthFfn), dimModel, initFn);
+
+#if 0
+    if(running_encoder)
+      debug(output, " EncoderTransformer batchEmbeddings AFTER FC2");
+    else
+      debug(output, " DecoderTransformer batchEmbeddings AFTER FC2");
+#endif
 
     auto opsPost = opt<std::string>("transformer-postprocess");
     output
@@ -866,6 +949,7 @@ public:
                                    encoderMasks[j],
                                    opt<int>("transformer-heads"),
                                    /*cache=*/true,
+                                   /*running_self_attention*/ false,
                                    saveAttentionWeights);
           }
         }
@@ -876,7 +960,7 @@ public:
       // remember decoder state
       decoderStates.push_back(decoderState);
 
-      query = LayerFFN(prefix_ + "_l" + layerNo + "_ffn", query); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+      query = LayerFFN(prefix_ + "_l" + layerNo + "_ffn", query, /*runningDec*/false); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
 
       checkpoint(query);
     }

@@ -7,6 +7,9 @@
 #include "layers/constructors.h"
 #include "layers/generic.h"
 
+// TODO: Get EOS_ID from vocab
+#define EOS_ID 2
+
 namespace marian {
 
 class DecoderBase : public EncoderDecoderLayerBase {
@@ -35,7 +38,7 @@ public:
 
     Expr y, yMask; std::tie
     (y, yMask) = getEmbeddingLayer()->apply(subBatch);
-
+  
     // @TODO: during training there is currently no code path that leads to using a shortlist
 #if 0
     const Words& data =
@@ -66,7 +69,12 @@ public:
     Expr selectedEmbs;
     int dimEmb = opt<int>("dim-emb");
     if(words.empty())
-      selectedEmbs = graph_->constant({1, 1, dimBatch, dimEmb}, inits::zeros());
+    {	  
+      // ZCode2.0 Large initializes the first state with EOS_ID instead of all zeros
+      // TODO: Get EOS_ID from vocab
+      std::vector<IndexType> initEmbeddingIdx(dimBatch, EOS_ID);
+      selectedEmbs = embeddingLayer->applyIndices(initEmbeddingIdx, {1, 1, dimBatch, dimEmb});
+    }
     else
       selectedEmbs = embeddingLayer->apply(words, {dimBeam, 1, dimBatch, dimEmb});
     state->setTargetHistoryEmbeddings(selectedEmbs);
