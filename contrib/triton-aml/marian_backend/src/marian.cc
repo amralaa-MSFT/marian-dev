@@ -474,6 +474,11 @@ TRITONSERVER_Error* serveRequestsSync(
     ModelInstanceState* instance_state =
         reinterpret_cast<ModelInstanceState*>(vstate);
     void* marian = instance_state->Marian();
+    LOG_MESSAGE(
+        TRITONSERVER_LOG_INFO,
+        (std::string("input_strings: ") + input_strings)
+        .c_str()
+    );
     char* result = translate(marian, const_cast<char*>(input_strings.c_str()));
 
     // Assign the results to the corresponding request.
