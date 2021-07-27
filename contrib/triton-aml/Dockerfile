@@ -42,11 +42,11 @@ RUN ./b2 install --prefix=/usr --with-system --with-thread --with-date_time --wi
 
 # Marian install
 WORKDIR /
-RUN echo "new version: 2021-07-26 2"
+RUN echo "new version: 2021-07-27 1"
 RUN git clone --no-checkout https://github.com/amralaa-MSFT/marian-dev.git
 WORKDIR marian-dev
 RUN git checkout async_return_debug
-RUN git checkout 9233022ca69f95ccc13e6fc4d38762aa4cb80cb9
+RUN git checkout 6db2899f8b8811f6b1c1ecca22746688229f33e8
 RUN mkdir src/static
 RUN mkdir build
 COPY src/cmarian.cpp /marian-dev/src/static
