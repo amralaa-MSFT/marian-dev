@@ -1,4 +1,8 @@
 #!/bin/sh
+
+set -xv
+set -eu
+
 echo Building Triton Marian backend ...
 
 docker build -t triton-marian-build .
