@@ -1,5 +1,7 @@
 #include "data/vocab_base.h"
 
+#include "sentencepiece/src/sentencepiece_processor.h"
+
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 #include "common/regex.h"
@@ -22,6 +24,8 @@ protected:
 
   typedef std::vector<std::string> Id2Str;
   Id2Str id2str_;
+
+  sentencepiece::SentencePieceProcessor sp_;
 
   Word eosId_ = Word::NONE;
   Word unkId_ = Word::NONE;
@@ -58,13 +62,61 @@ public:
   }
 
   Words encode(const std::string& line, bool addEOS, bool /*inference*/) const override {
-    auto lineTokens = utils::split(line, " ");
+    // TODO (amralaa)
+    LOG(info, "Input line: {}", line);
+
+    size_t langTokenLength = 6;
+    // TODO (amralaa): How to get target language?
+    std::string langToken = line.substr(line.size() - langTokenLength);
+    std::string content = line.substr(0, line.size() - langTokenLength - 1);
+
+    // Split into SentencePiece pieces
+    std::vector<std::string> pieces;
+    sp_.Encode(content, &pieces);
+    for(auto& piece : pieces) {
+      LOG(info, "Piece: {}", piece);
+    }
+
+    size_t maxTokens = 256; // TODO (amralaa)
+    size_t maxContentTokens = maxTokens - 3; // 3 appended tokens: EOS LANG EOS
+    size_t contentTokensCount = std::min(maxContentTokens, pieces.size());
+
+    // Truncate tokens
+    std::vector<std::string> lineTokens;
+    lineTokens.reserve(contentTokensCount + 2);
+    for(int i = 0; i < contentTokensCount; ++i) {
+      lineTokens.push_back(pieces[i]);
+    }
+
+    std::string eosToken = "</s>"; // TODO (amralaa): Do not use literal
+    lineTokens.push_back(eosToken);
+    lineTokens.push_back(langToken);
+
+    for(auto& token : lineTokens) {
+      LOG(info, "Line token: {}", token);
+    }
+
+    // auto lineTokens = utils::split(line, " ");
     return (*this)(lineTokens, addEOS);
   }
 
   std::string decode(const Words& sentence, bool ignoreEOS) const override {
     auto tokens = (*this)(sentence, ignoreEOS);
-    return utils::join(tokens, " ");
+
+    // TODO (amralaa): 
+    for(size_t i = 0; i < tokens.size(); ++i) {
+      LOG(info, "Decoded token: {}", tokens[i]);
+    }
+
+    // TODO (amralaa): 
+    // std::string joinedTokens = utils::join(tokens, " ");
+    std::string detokenized;
+    sp_.Decode(tokens, &detokenized);
+
+    LOG(info, "detokenized string: {}", detokenized);
+
+    return detokenized;
+    // return utils::join(tokens, " ");
   }
 
   std::string surfaceForm(const Words& sentence) const override {
@@ -131,6 +183,10 @@ public:
     ABORT_IF(id2str_.empty(), "Empty vocabulary: ", vocabPath);
 
     addRequiredVocabulary(vocabPath, isJson);
+
+    // TODO: amralaa
+    std::string spmModelPath = "/home/amralaa/ws/Triton/translation_model/translation_services/triton/zcode/1/data/model/sentencepiece.bpe.model";
+    sp_.Load(spmModelPath);
 
     return std::max(id2str_.size(), maxSize);
   }
@@ -264,6 +320,12 @@ private:
                   [&](const std::string& w) { return (*this)[w]; });
     if(addEOS)
       words.push_back(eosId_);
+
+    // TODO (amralaa): Remove
+    for(auto& word : words) {
+      LOG(info, "Word: {} - {}", (*this)[word], std::to_string(word.toWordIndex()));
+    }
+
     return words;
   }
 
