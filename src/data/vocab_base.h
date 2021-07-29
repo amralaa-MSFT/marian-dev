@@ -65,5 +65,6 @@ Ptr<IVocab> createDefaultVocab();
 Ptr<IVocab> createClassVocab();
 Ptr<IVocab> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options>, size_t batchIndex);
 Ptr<IVocab> createFactoredVocab(const std::string& vocabPath);
+Ptr<IVocab> createZCodeVocab(const std::string&, Ptr<Options>, size_t);
 
 }

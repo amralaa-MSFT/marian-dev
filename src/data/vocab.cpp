@@ -11,6 +11,11 @@ Word Word::DEFAULT_UNK_ID = Word(1);
 
 // @TODO: make each vocab peek on type
 Ptr<IVocab> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+  // try ZCode
+  if(options->get<bool>("use-zcode-vocab", false)) {
+    return createZCodeVocab(vocabPath, options, batchIndex);
+  }
+
   // try SentencePiece
   auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);
   if(vocab)

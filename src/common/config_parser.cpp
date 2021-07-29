@@ -667,6 +667,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   addSuboptionsTSV(cli);
   addSuboptionsDevices(cli);
   addSuboptionsBatching(cli);
+  addSuboptionsZCode(cli);
 
   cli.add<bool>("--fp16",
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
@@ -879,6 +880,33 @@ void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper& cli) {
       defaultMaxLength);
   cli.add<bool>("--max-length-crop",
       "Crop a sentence to max-length instead of omitting it if longer than max-length");
+  // clang-format on
+}
+
+// TODO (amralaa)
+void ConfigParser::addSuboptionsZCode(cli::CLIWrapper& cli) {
+  // clang-format off
+  cli.add<bool>("--use-zcode-vocab",
+      "Use ZCode vocab.",
+      false);
+  cli.add<int>("--spm-special-tokens-count",
+      "Number of prepended special tokens in loaded sentencepiece model.",
+      3);
+  cli.add<int>("--fs-special-tokens-count",
+      "Number of prepended special tokens in Fairseq dict.",
+      4);
+  cli.add<int>("--eos-index",
+      "Actual eos token index (which may be different from sentencepiece model)",
+      2);
+  cli.add<int>("--unk-index",
+      "Actual unk token index (which may be different from sentencepiece model)",
+      3);
+  cli.add<std::string>("--lang-tokens",
+      "Comma separated list of langs",
+      "");
+  cli.add<int>("--lang-tokens-start-index",
+      "Index of first lang token",
+      250002);
   // clang-format on
 }
 

@@ -36,6 +36,7 @@ set(MARIAN_SOURCES
   data/vocab.cpp
   data/default_vocab.cpp
   data/sentencepiece_vocab.cpp
+  data/zcode_vocab.cpp
   data/factored_vocab.cpp
   data/corpus_base.cpp
   data/corpus.cpp
