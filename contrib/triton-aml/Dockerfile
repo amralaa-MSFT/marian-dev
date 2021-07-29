@@ -58,7 +58,7 @@ WORKDIR /marian-dev/build
 RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off -DCOMPILE_SERVER=off -DUSE_FBGEMM=on  \ 
              -DCOMPILE_CUDA_SM35=off -DCOMPILE_CUDA_SM50=off -DCOMPILE_CUDA_SM60=off -DCOMPILE_CUDA_SM70=on -DCOMPILE_CUDA_SM75=on \
              -DCUDA_cublas_device_LIBRARY=/usr/local/cuda/lib64/libcublas.so \
-             -DCMAKE_BUILD_TYPE=Debug
+             -DCMAKE_BUILD_TYPE=Release
 
 RUN make -j $(grep -c ^processor /proc/cpuinfo)
 
@@ -73,7 +73,7 @@ RUN make -j $(grep -c ^processor /proc/cpuinfo)
 # RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off -DCOMPILE_SERVER=off -DUSE_FBGEMM=on  \ 
 #              -DCOMPILE_CUDA_SM35=off -DCOMPILE_CUDA_SM50=off -DCOMPILE_CUDA_SM60=off -DCOMPILE_CUDA_SM70=on -DCOMPILE_CUDA_SM75=on \
 #              -DCUDA_cublas_device_LIBRARY=/usr/local/cuda/lib64/libcublas.so \
-#              -DCMAKE_BUILD_TYPE=Debug
+#              -DCMAKE_BUILD_TYPE=Release
 # RUN make -j $(grep -c ^processor /proc/cpuinfo)
 
 # build cmarian static library
@@ -115,5 +115,5 @@ RUN cd build && \
     cmake -DTRITON_BACKEND_REPO_TAG=ccd6883947d384e21bc3f1ef7130170c6aa341c6 \
           -DTRITON_CORE_REPO_TAG=c2a3825e67aaf8413e8436b8eec44f21bc4bdac6 \
           -DTRITON_COMMON_REPO_TAG=044e5145c5b3ec7290b395e257a0dde5678e85f2 \ 
-          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install .. && make install
