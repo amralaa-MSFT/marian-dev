@@ -368,6 +368,7 @@ TRITONSERVER_Error* serveRequestsSync(
     SET_TIMESTAMP(exec_start_ns);
 
     std::vector<TRITONBACKEND_Input*> request_input;
+    std::vector<TRITONBACKEND_Input*> request_target_language_input;
     std::vector<int> request_batch_size;
     std::string input_strings;
 
@@ -390,6 +391,19 @@ TRITONSERVER_Error* serveRequestsSync(
         );
         request_input.push_back(input);
 
+        const char* target_language_input_name;
+        GUARDED_RESPOND_IF_ERROR(
+            responses, r,
+            TRITONBACKEND_RequestInputName(request, 1 /* index */, &target_language_input_name)
+        );
+
+        TRITONBACKEND_Input* target_language_input = nullptr;
+        GUARDED_RESPOND_IF_ERROR(
+            responses, r,
+            TRITONBACKEND_RequestInput(request, target_language_input_name, &target_language_input)
+        );
+        request_target_language_input.push_back(target_language_input);
+
         // If an error response was sent while getting the input name
         // or input then display an error message and move on
         // to next request.
@@ -410,6 +424,14 @@ TRITONSERVER_Error* serveRequestsSync(
             TRITONBACKEND_InputProperties(
                 input, nullptr /* input_name */, nullptr, nullptr,
                 nullptr, nullptr, &input_buffer_count
+            )
+        );
+        uint32_t target_language_input_buffer_count;
+        GUARDED_RESPOND_IF_ERROR(
+            responses, r,
+            TRITONBACKEND_InputProperties(
+                target_language_input, nullptr /* input_name */, nullptr, nullptr,
+                nullptr, nullptr, &target_language_input_buffer_count
             )
         );
         if (responses[r] == nullptr) {
@@ -452,11 +474,84 @@ TRITONSERVER_Error* serveRequestsSync(
                 reinterpret_cast<const char*>(input_buffer) + buffer_byte_size
             );
         }
+        // Compose all the requests input to make a batch request,
+        // record the sentences count of each request for further process.
+        std::vector<char> target_language_content_buffer;
+        for (uint32_t b = 0; b < target_language_input_buffer_count; ++b) {
+            const void* input_buffer = nullptr;
+            uint64_t buffer_byte_size = 0;
+            TRITONSERVER_MemoryType input_memory_type = TRITONSERVER_MEMORY_CPU;
+            int64_t input_memory_type_id = 0;
+            GUARDED_RESPOND_IF_ERROR(
+                responses, r,
+                TRITONBACKEND_InputBuffer(
+                    target_language_input, b, &input_buffer, &buffer_byte_size,
+                    &input_memory_type, &input_memory_type_id
+                )
+            );
+            if ((responses[r] == nullptr) ||
+                (input_memory_type == TRITONSERVER_MEMORY_GPU)) {
+                GUARDED_RESPOND_IF_ERROR(
+                    responses, r,
+                    TRITONSERVER_ErrorNew(
+                        TRITONSERVER_ERROR_UNSUPPORTED,
+                        "failed to get target_language_input buffer in CPU memory"
+                    )
+                );
+            }
+            target_language_content_buffer.insert(
+                target_language_content_buffer.end(), reinterpret_cast<const char*>(input_buffer) + 4,
+                reinterpret_cast<const char*>(input_buffer) + buffer_byte_size
+            );
+        }
 
-        std::string s(content_buffer.begin(), content_buffer.end());
-        int count = std::count(s.begin(), s.end(), '\n');
+        std::string target_language(target_language_content_buffer.begin(), target_language_content_buffer.end());
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_INFO,
+            (std::string("target_language: ") + target_language).c_str()
+        );
+
+        std::string content(content_buffer.begin(), content_buffer.end());
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_INFO,
+            (std::string("content: ") + content).c_str()
+        );
+
+        int count = std::count(content.begin(), content.end(), '\n');
+
+        std::vector<char> processed_buffer;
+        processed_buffer.reserve(content.size() + (target_language.size() + 1) * (count + 1));
+        for(auto c : content) {
+            if(c == '\n') {
+                processed_buffer.push_back(' ');
+                processed_buffer.push_back('_');
+                processed_buffer.push_back('_');
+                for(auto c2 : target_language) {
+                    processed_buffer.push_back(c2);
+                }
+                processed_buffer.push_back('_');
+                processed_buffer.push_back('_');
+            }
+            processed_buffer.push_back(c);
+        }
+        processed_buffer.push_back(' ');
+        processed_buffer.push_back('_');
+        processed_buffer.push_back('_');
+        for(auto c2 : target_language) {
+            processed_buffer.push_back(c2);
+        }
+        processed_buffer.push_back('_');
+        processed_buffer.push_back('_');
+
+        std::string s(processed_buffer.begin(), processed_buffer.end());
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_INFO,
+            (std::string("processed content: ") + s).c_str()
+        );
+
         request_batch_size.push_back(count + 1);
         content_buffer.clear();
+        target_language_content_buffer.clear();
 
         if (input_strings.empty()) {
             input_strings = s;

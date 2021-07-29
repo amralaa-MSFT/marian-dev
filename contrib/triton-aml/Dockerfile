@@ -62,6 +62,20 @@ RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STA
 
 RUN make -j $(grep -c ^processor /proc/cpuinfo)
 
+# # RUN ls -l /marian-dev/contrib/triton-aml/marian_backend/src
+# # RUN wc -l /marian-dev/contrib/triton-aml/marian_backend/src/marian.cc
+# COPY marian_backend/src/marian.cc /marian-dev/contrib/triton-aml/marian_backend/src/marian.cc
+# # RUN ls -l /marian-dev/contrib/triton-aml/marian_backend/src
+# # RUN wc -l /marian-dev/contrib/triton-aml/marian_backend/src/marian.cc
+# # RUN exit 1
+
+# # Quick Rebuild
+# RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off -DCOMPILE_SERVER=off -DUSE_FBGEMM=on  \ 
+#              -DCOMPILE_CUDA_SM35=off -DCOMPILE_CUDA_SM50=off -DCOMPILE_CUDA_SM60=off -DCOMPILE_CUDA_SM70=on -DCOMPILE_CUDA_SM75=on \
+#              -DCUDA_cublas_device_LIBRARY=/usr/local/cuda/lib64/libcublas.so \
+#              -DCMAKE_BUILD_TYPE=Debug
+# RUN make -j $(grep -c ^processor /proc/cpuinfo)
+
 # build cmarian static library
 FROM nvcr.io/nvidia/tritonserver:20.09-py3
 RUN mkdir -p /marian-dev/build/src/3rd_party/sentencepiece/src
