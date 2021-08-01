@@ -13,7 +13,7 @@ namespace marian {
 
 #ifdef USE_SENTENCEPIECE
 
-// #define DEBUG_ZCODE_VOCAB // TODO (amralaa)
+#define DEBUG_ZCODE_VOCAB // TODO (amralaa)
 
 // Wrapper around https://github.com/google/sentencepiece
 class ZCodeVocab : public IVocab {
@@ -201,6 +201,12 @@ public:
 
     if(addEOS)
       words.push_back(getEosId());
+
+#ifdef DEBUG_ZCODE_VOCAB
+    for(auto& word : words) {
+      LOG(debug, "Final words: {}", word.toString());
+    }
+#endif
 
     ABORT_IF(words.size() > maxLength_, "words.size() > maxLength_");
     return words;
