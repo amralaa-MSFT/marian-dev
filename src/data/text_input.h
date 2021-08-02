@@ -74,6 +74,8 @@ public:
     }
 
     std::vector<size_t> words(maxDims.size(), 0);
+#define HAS_PRE_LANG_EOS
+#ifndef HAS_PRE_LANG_EOS
     for(size_t i = 0; i < batchSize; ++i) {
       for(size_t j = 0; j < maxDims.size(); ++j) {
         for(size_t k = 0; k < batchVector[i][j].size(); ++k) {
@@ -83,6 +85,40 @@ public:
         }
       }
     }
+#else
+    for(size_t i = 0; i < batchSize; ++i) {                    // loop over batch entries
+      for(size_t j = 0; j < maxDims.size(); ++j) {             // loop over streams // async branch
+        auto& subBatch = subBatches[j];
+        for(size_t k = 0; k < batchVector[i][j].size(); ++k) { // loop over word positions
+          if(k < batchVector[i][j].size() - 3) {
+            subBatch->data()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = batchVector[i][j][k];
+            subBatch->mask()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = 1.f;
+          } else if (k == batchVector[i][j].size() - 3) {
+            // Add EOS with no masking 
+            subBatch->data()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = batchVector[i][j][batchVector[i][j].size() - 1];
+            subBatch->mask()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = 1.f;
+          } else if (k == batchVector[i][j].size() - 2) {
+            // Add the lang id
+            subBatch->data()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = batchVector[i][j][k];
+            subBatch->mask()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = 1.f;
+          } else if (k == batchVector[i][j].size() - 1) {
+            // Add EOS with masking
+            subBatch->data()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = batchVector[i][j][k];
+            subBatch->mask()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = 0.f;
+          }
+
+          LOG(info,
+            "Hossam debug indices word id: {} loc: {} mask: {}",
+            batchVector[i][j][k].toWordIndex(),
+            subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k),
+            subBatch->data()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/].toWordIndex(),
+            subBatch->mask()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/]);
+
+          words[j]++;
+        }
+      }
+    }
+#endif
 
     for(size_t j = 0; j < maxDims.size(); ++j)
       subBatches[j]->setWords(words[j]);
