@@ -46,7 +46,7 @@ RUN echo "new version: 2021-08-02 2"
 RUN git clone --no-checkout https://github.com/amralaa-MSFT/marian-dev.git
 WORKDIR marian-dev
 RUN git checkout async_return_debug
-RUN git checkout f3704b105014e6effe0ba4f6b2053cd62576132b
+RUN git checkout 842838a340bc49bb53fa831e23f41a4ee1e89bc1
 RUN mkdir src/static
 RUN mkdir build
 COPY src/cmarian.cpp /marian-dev/src/static
