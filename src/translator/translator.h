@@ -248,7 +248,7 @@ public:
                       ? convertTsvToLists(input, options_->get<size_t>("tsv-fields", 1))
                       : std::vector<std::string>({input});
 
-    LOG(info, "[Hossam translator.h] Run method with output and input={} one input={}", input, inputs[0]);
+    LOG(debug, "[Hossam translator.h] Run method with output and input={} one input={}", input, inputs[0]);
     auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
 
