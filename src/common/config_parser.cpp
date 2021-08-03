@@ -907,6 +907,11 @@ void ConfigParser::addSuboptionsZCode(cli::CLIWrapper& cli) {
   cli.add<int>("--lang-tokens-start-index",
       "Index of first lang token",
       250002);
+
+  // TODO (amrlaaa): remove
+  cli.add<bool>("--async-translate",
+      "Use async mode for trasnaltion",
+      false);
   // clang-format on
 }
 

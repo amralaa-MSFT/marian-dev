@@ -8,13 +8,25 @@
 
 typedef SimpleWeb::SocketServer<SimpleWeb::WS> WSServer;
 
+using namespace marian;
+
+class CallbackContext {
+public:
+  Ptr<WSServer::Connection> connection;
+  Ptr<WSServer::OutMessage> sendStream;
+  bool quiet;
+  marian::timer::Timer timer;
+};
+
 int main(int argc, char **argv) {
   using namespace marian;
 
   // Initialize translation task
   auto options = parseOptions(argc, argv, cli::mode::server, true);
   auto task = New<TranslateService<BeamSearch>>(options);
+  auto asyncTask = New<TranslateServiceAsync<BeamSearch>>(options);
   auto quiet = options->get<bool>("quiet-translation");
+  bool isAsync = options->get<bool>("async-translate", false);
 
   // Initialize web server
   WSServer server;
@@ -22,24 +34,58 @@ int main(int argc, char **argv) {
 
   auto &translate = server.endpoint["^/translate/?$"];
 
-  translate.on_message = [&task, quiet](Ptr<WSServer::Connection> connection,
-                                        Ptr<WSServer::InMessage> message) {
+  translate.on_message = [&task, &asyncTask, quiet, isAsync](
+    Ptr<WSServer::Connection> connection,
+    Ptr<WSServer::InMessage> message
+  ) {
     // Get input text
     auto inputText = message->string();
     auto sendStream = std::make_shared<WSServer::OutMessage>();
 
-    // Translate
-    timer::Timer timer;
-    auto outputText = task->run(inputText);
-    *sendStream << outputText << std::endl;
-    if(!quiet)
-      LOG(info, "Translation took: {:.5f}s", timer.elapsed());
+    if(isAsync) {
+      // Translate Async
+      timer::Timer timer;
 
-    // Send translation back
-    connection->send(sendStream, [](const SimpleWeb::error_code &ec) {
-      if(ec)
-        LOG(error, "Error sending message: ({}) {}", ec.value(), ec.message());
-    });
+      auto ctx = New<CallbackContext>();
+      ctx->connection = connection;
+      ctx->sendStream = sendStream;
+      ctx->timer = timer;
+      ctx->quiet = quiet;
+
+      // typedef void (*callbackFunc)(int, const char*, void*);
+      auto callback = [](int batchId, const char* translation, void* userData) {
+          std::shared_ptr<CallbackContext> ctx = *(reinterpret_cast<std::shared_ptr<CallbackContext>*>(userData));
+          LOG(info, "Quiet: {}", ctx->quiet);
+          LOG(info, "Translation: {}", translation);
+
+          std::string outputText(translation);
+          *ctx->sendStream << outputText << std::endl;
+          if(!ctx->quiet)
+            LOG(info, "Translation took: {:.5f}s", ctx->timer.elapsed());
+      };
+
+      asyncTask->run(inputText, callback, (void*)&ctx);
+
+      // Send translation back
+      ctx->connection->send(ctx->sendStream, [](const SimpleWeb::error_code &ec) {
+        if(ec)
+          LOG(error, "Error sending message: ({}) {}", ec.value(), ec.message());
+      });
+
+    } else {
+      // Translate
+      timer::Timer timer;
+      auto outputText = task->run(inputText);
+      *sendStream << outputText << std::endl;
+      if(!quiet)
+        LOG(info, "Translation took: {:.5f}s", timer.elapsed());
+
+      // Send translation back
+      connection->send(sendStream, [](const SimpleWeb::error_code &ec) {
+        if(ec)
+          LOG(error, "Error sending message: ({}) {}", ec.value(), ec.message());
+      });
+    }
   };
 
   // Error Codes for error code meanings
