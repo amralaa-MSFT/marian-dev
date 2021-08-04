@@ -476,7 +476,7 @@ TRITONSERVER_Error* serveRequestsSync(
         }
 
         // Read target language into buffer
-        std::vector<char> target_language_content_buffer;
+        std::vector<char> target_language_buffer;
         for (uint32_t b = 0; b < target_language_input_buffer_count; ++b) {
             const void* input_buffer = nullptr;
             uint64_t buffer_byte_size = 0;
@@ -499,14 +499,14 @@ TRITONSERVER_Error* serveRequestsSync(
                     )
                 );
             }
-            target_language_content_buffer.insert(
-                target_language_content_buffer.end(), reinterpret_cast<const char*>(input_buffer) + 4,
+            target_language_buffer.insert(
+                target_language_buffer.end(), reinterpret_cast<const char*>(input_buffer) + 4,
                 reinterpret_cast<const char*>(input_buffer) + buffer_byte_size
             );
         }
 
-        std::string target_language(target_language_content_buffer.begin(), target_language_content_buffer.end());
-        target_language_content_buffer.clear();
+        std::string target_language(target_language_buffer.begin(), target_language_buffer.end());
+        target_language_buffer.clear();
         LOG_MESSAGE(
             TRITONSERVER_LOG_INFO,
             (std::string("target_language: ") + target_language).c_str()
@@ -526,8 +526,14 @@ TRITONSERVER_Error* serveRequestsSync(
             }
             s.append(1, content_buffer[i]);
         }
-        if (!s.empty() && s.back() == '\n') {
-            s.erase(s.length() - 1);
+        if (!s.empty()) {
+            if (s.back() == '\n') {
+                s.erase(s.length() - 1);
+            } else {
+                s.append(" __");
+                s.append(target_language);
+                s.append("__");
+            }
         }
         content_buffer.clear();
         LOG_MESSAGE(
@@ -1078,6 +1084,10 @@ TRITONSERVER_Error* serveRequestsAsync(
 
         std::string target_language(target_language_buffer.begin(), target_language_buffer.end());
         target_language_buffer.clear();
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_INFO,
+            (std::string("target_language: ") + target_language).c_str()
+        );
 
         // First, deduplicate new lines and place in s.
         std::string s;
@@ -1094,14 +1104,23 @@ TRITONSERVER_Error* serveRequestsAsync(
             }
             s.append(1, content_buffer[i]);
         }
-
-        if(!s.empty() && s.back() == '\n') {
-            s.erase(s.length() - 1);
+        if (!s.empty()) {
+            if (s.back() == '\n') {
+                s.erase(s.length() - 1);
+            } else {
+                s.append(" __");
+                s.append(target_language);
+                s.append("__");
+            }
         }
+        content_buffer.clear();
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_INFO,
+            (std::string("processed content: ") + s).c_str()
+        );
 
         // Check the number of sentences packed into one request by counting new lines. These actually partition a request.
         int count = std::count(s.begin(), s.end(), '\n');
-        content_buffer.clear();
 
         // Ensure each request vector has enough space for its batch
         state.partially_completed_requests[r].resize(count + 1);
