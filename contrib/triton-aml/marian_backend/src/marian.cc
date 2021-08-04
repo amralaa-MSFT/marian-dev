@@ -513,7 +513,7 @@ TRITONSERVER_Error* serveRequestsSync(
         );
 
         std::string s;
-        for (int i = 0; i < content_buffer.size(); ++i) {
+        for (size_t i = 0; i < content_buffer.size(); ++i) {
             if (content_buffer[i] == '\n') {
                 if (i > 0 && content_buffer[i - 1] == '\n') {
                     // Deduplicate repeated newlines.
@@ -526,8 +526,8 @@ TRITONSERVER_Error* serveRequestsSync(
             }
             s.append(1, content_buffer[i]);
         }
-        if (!s.empty() && s.back() == '\n')) {
-            s.erase(s.size() - 1);
+        if (!s.empty() && s.back() == '\n') {
+            s.erase(s.length() - 1);
         }
         content_buffer.clear();
         LOG_MESSAGE(
@@ -535,7 +535,7 @@ TRITONSERVER_Error* serveRequestsSync(
             (std::string("processed content: ") + s).c_str()
         );
 
-        int count = std::count(content.begin(), content.end(), '\n');
+        int count = std::count(s.begin(), s.end(), '\n');
         request_batch_size.push_back(count + 1);
 
         if (!input_strings.empty()) {
