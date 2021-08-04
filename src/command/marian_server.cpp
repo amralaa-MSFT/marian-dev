@@ -23,10 +23,17 @@ int main(int argc, char **argv) {
 
   // Initialize translation task
   auto options = parseOptions(argc, argv, cli::mode::server, true);
-  auto task = New<TranslateService<BeamSearch>>(options);
-  auto asyncTask = New<TranslateServiceAsync<BeamSearch>>(options);
   auto quiet = options->get<bool>("quiet-translation");
   bool isAsync = options->get<bool>("async-translate", false);
+
+  Ptr<TranslateService<BeamSearch>> task = nullptr;
+  Ptr<TranslateServiceAsync<BeamSearch>> asyncTask = nullptr;
+  if(isAsync) {
+    asyncTask = New<TranslateServiceAsync<BeamSearch>>(options);
+  } else {
+    task = New<TranslateService<BeamSearch>>(options);
+  }
+
 
   // Initialize web server
   WSServer server;
