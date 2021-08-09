@@ -150,7 +150,7 @@ public:
     std::vector<int> fsIds;
     for(auto& spmId : spmIds) {
       LOG(debug, "SPMId: {}", std::to_string(spmId));
-      ABORT_IF(spmId < spmSpecialTokensCount_, "Unexpected token id {}", std::to_string(spmId));
+      // ABORT_IF(spmId < spmSpecialTokensCount_, "Unexpected token id {}", std::to_string(spmId));
       auto fsId = spmToFs(spmId);
       LOG(debug, "FSId: {}", std::to_string(fsId));
       fsIds.push_back(fsId);
@@ -240,7 +240,7 @@ public:
   size_t size() const override { return maxTokenId_ + 1; }
 
   size_t load(const std::string& vocabPath, size_t /*maxSize*/) override {
-    LOG(info, "[data] Loading SentencePiece vocabulary from file {}", vocabPath);
+    LOG(info, "[data] Loading SentencePiece (ZCode) vocabulary from file {}", vocabPath);
 
     ABORT_IF(!filesystem::exists(vocabPath),
              "SentencePiece vocabulary file {} does not exist",
