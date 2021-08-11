@@ -3,6 +3,8 @@
 #include "marian.h"
 #include "triton/backend/backend_common.h"
 
+// #define DEBUG_MARIAN_BACKEND
+
 namespace triton { namespace backend { namespace marian {
 
 #define GUARDED_RESPOND_IF_ERROR(RESPONSES, IDX, X)                             \
@@ -507,10 +509,12 @@ TRITONSERVER_Error* serveRequestsSync(
 
         std::string target_language(target_language_buffer.begin(), target_language_buffer.end());
         target_language_buffer.clear();
+#ifdef DEBUG_MARIAN_BACKEND
         LOG_MESSAGE(
             TRITONSERVER_LOG_INFO,
             (std::string("target_language: ") + target_language).c_str()
         );
+#endif
 
         std::string s;
         for (size_t i = 0; i < content_buffer.size(); ++i) {
@@ -536,10 +540,12 @@ TRITONSERVER_Error* serveRequestsSync(
             }
         }
         content_buffer.clear();
+#ifdef DEBUG_MARIAN_BACKEND
         LOG_MESSAGE(
             TRITONSERVER_LOG_INFO,
             (std::string("processed content: ") + s).c_str()
         );
+#endif
 
         int count = std::count(s.begin(), s.end(), '\n');
         request_batch_size.push_back(count + 1);
@@ -558,11 +564,13 @@ TRITONSERVER_Error* serveRequestsSync(
     ModelInstanceState* instance_state =
         reinterpret_cast<ModelInstanceState*>(vstate);
     void* marian = instance_state->Marian();
+#ifdef DEBUG_MARIAN_BACKEND
     LOG_MESSAGE(
         TRITONSERVER_LOG_INFO,
         (std::string("input_strings: ") + input_strings)
         .c_str()
     );
+#endif
     char* result = translate(marian, const_cast<char*>(input_strings.c_str()));
 
     // Assign the results to the corresponding request.
@@ -1084,10 +1092,12 @@ TRITONSERVER_Error* serveRequestsAsync(
 
         std::string target_language(target_language_buffer.begin(), target_language_buffer.end());
         target_language_buffer.clear();
+#ifdef DEBUG_MARIAN_BACKEND
         LOG_MESSAGE(
             TRITONSERVER_LOG_INFO,
             (std::string("target_language: ") + target_language).c_str()
         );
+#endif
 
         // First, deduplicate new lines and place in s.
         std::string s;
@@ -1114,10 +1124,12 @@ TRITONSERVER_Error* serveRequestsAsync(
             }
         }
         content_buffer.clear();
+#ifdef DEBUG_MARIAN_BACKEND
         LOG_MESSAGE(
             TRITONSERVER_LOG_INFO,
             (std::string("processed content: ") + s).c_str()
         );
+#endif
 
         // Check the number of sentences packed into one request by counting new lines. These actually partition a request.
         int count = std::count(s.begin(), s.end(), '\n');
@@ -1150,11 +1162,13 @@ TRITONSERVER_Error* serveRequestsAsync(
     state.instance_state = reinterpret_cast<ModelInstanceState*>(vstate);
     void* marian = state.instance_state->Marian();
 
+#ifdef DEBUG_MARIAN_BACKEND
     LOG_MESSAGE(
         TRITONSERVER_LOG_INFO,
         (std::string("input_strings: ") + input_strings)
         .c_str()
     );
+#endif
     translate_async(marian, const_cast<char*>(input_strings.c_str()), sendResponse, (void*)&state);
 
     // Report statistics for the entire batch of requests.
