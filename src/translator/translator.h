@@ -16,6 +16,8 @@
 #include "models/model_task.h"
 #include "translator/scorers.h"
 
+#include "common/utils.h"
+
 // currently for diagnostics only, will try to mmap files ending in *.bin suffix when enabled.
 // @TODO: add this as an actual feature.
 #define MMAP 0
@@ -243,6 +245,9 @@ public:
   }
 
   std::string run(const std::string& input) override {
+    if(options_->get<bool>("debug-no-tokenization-no-decoding", false)) {
+      return input;
+    }
     // split tab-separated input into fields if necessary
     auto inputs = options_->get<bool>("tsv", false)
                       ? convertTsvToLists(input, options_->get<size_t>("tsv-fields", 1))
@@ -383,6 +388,14 @@ public:
   }
 
   void run(const std::string& input, void (*callback)(int, const char*, void*), void* userData) override {
+    if(options_->get<bool>("debug-no-tokenization-no-decoding", false)) {
+      auto lines = utils::split(input, "\n");
+      for(size_t i = 0; i < lines.size(); ++i) {
+        auto line = lines[i];
+        callback((int) i, line.c_str(), userData);
+      }
+      return;
+    }
     // split tab-separated input into fields if necessary
     auto inputs = options_->get<bool>("tsv", false)
                       ? convertTsvToLists(input, options_->get<size_t>("tsv-fields", 1))

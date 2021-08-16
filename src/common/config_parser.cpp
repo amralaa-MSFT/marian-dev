@@ -908,9 +908,13 @@ void ConfigParser::addSuboptionsZCode(cli::CLIWrapper& cli) {
       "Index of first lang token",
       250002);
 
-  // TODO (amrlaaa): remove
+  // TODO (amralaa): remove
   cli.add<bool>("--async-translate",
       "Use async mode for trasnaltion",
+      false);
+  // TODO (amralaa): benchmarking
+  cli.add<bool>("--debug-no-tokenization-no-decoding",
+      "No translation",
       false);
   // clang-format on
 }
