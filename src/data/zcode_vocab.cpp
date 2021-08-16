@@ -136,7 +136,9 @@ public:
   Words encode(const std::string& line, bool addEOS, bool inference) const override {
     ABORT_IF(!inference, "ZCodeVocab is supported only for inference.");
 
+#ifdef DEBUG_ZCODE_VOCAB
     LOG(debug, "Input line: {}", line);  // TODO (amralaa)
+#endif
 
     size_t langTokenLength = 6;
     // TODO (amralaa): How to get target language?
