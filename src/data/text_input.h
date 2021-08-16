@@ -107,12 +107,14 @@ public:
             subBatch->mask()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/] = 0.f;
           }
 
+#if 0
           LOG(debug,
             "Hossam debug indices word id: {}. loc: {} data: {} mask: {}",
             batchVector[i][j][k].toWordIndex(),
             subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k),
             subBatch->data()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/].toWordIndex(),
             subBatch->mask()[subBatch->locate(/*batchIdx=*/i, /*wordPos=*/k)/*k * batchSize + i*/]);
+#endif
 
           words[j]++;
         }
