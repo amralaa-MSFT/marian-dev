@@ -13,7 +13,7 @@ namespace marian {
 
 #ifdef USE_SENTENCEPIECE
 
-#define DEBUG_ZCODE_VOCAB // TODO (amralaa)
+// #define DEBUG_ZCODE_VOCAB // TODO (amralaa)
 
 // Wrapper around https://github.com/google/sentencepiece
 class ZCodeVocab : public IVocab {

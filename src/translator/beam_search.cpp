@@ -322,23 +322,23 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
   }
 
   if(options_->get<bool>("debug-no-decoding", false)) {
-    LOG(info, "batch->front()->batchSize(): {}", batch->front()->batchSize());
-    LOG(info, "batch->front()->batchWidth(): {}", batch->front()->batchWidth());
+    // LOG(info, "batch->front()->batchSize(): {}", batch->front()->batchSize());
+    // LOG(info, "batch->front()->batchWidth(): {}", batch->front()->batchWidth());
     for(size_t batchIdx = 0; batchIdx < batch->front()->batchSize(); ++batchIdx) {
-      LOG(info, "Batch Idx: {}", batchIdx);
+      // LOG(info, "Batch Idx: {}", batchIdx);
 
       Words words;
       words.reserve(batch->front()->batchWidth());
       for (size_t wordPos = 0; wordPos < batch->front()->batchWidth(); ++wordPos) {
         auto& word = batch->front()->data()[batch->front()->locate(batchIdx, wordPos)];
         words.push_back(word);
-        LOG(info, "Word: {}", std::to_string(word.toWordIndex()));
+        // LOG(info, "Word: {}", std::to_string(word.toWordIndex()));
         if (word == trgVocab_->getEosId()) {
           break;
         }
       }
       std::string translation = trgVocab_->decode(words);
-      LOG(info, "translation: {}", translation);
+      // LOG(info, "translation: {}", translation);
       callback((int) histories[batchIdx]->getLineNum(), translation.c_str(), userData); // TODO: LineNo
     }
 
