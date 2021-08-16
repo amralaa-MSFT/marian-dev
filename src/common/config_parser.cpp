@@ -913,8 +913,11 @@ void ConfigParser::addSuboptionsZCode(cli::CLIWrapper& cli) {
       "Use async mode for trasnaltion",
       false);
   // TODO (amralaa): benchmarking
+  cli.add<bool>("--debug-no-decoding",
+      "Tokenization only. No decoding",
+      false);
   cli.add<bool>("--debug-no-tokenization-no-decoding",
-      "No translation",
+      "No tokenization. No decoding",
       false);
   // clang-format on
 }
