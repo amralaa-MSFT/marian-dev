@@ -78,7 +78,11 @@ private:
     size_t spmId;
     if(fsId >= fsDictSpecialTokensCount_) {
       spmId = fsId - fsDictSpecialTokensCount_ + spmSpecialTokensCount_;
-      ABORT_IF(spmId >= spm_->GetPieceSize(), "spmId >= spm_->GetPieceSize()");
+      if(spmId >= spm_->GetPieceSize()) {
+        LOG(warn, "Will replace spmId >= spm_->GetPieceSize() with <unk>. fsId: {}, old spmId: {}", fsId, spmId);
+        spmId = spm_->unk_id();
+      }
+      // ABORT_IF(spmId >= spm_->GetPieceSize(), "spmId >= spm_->GetPieceSize()");
     } else if(fsId == fsDictEosId_) {
       spmId = spm_->eos_id();
     } else if(fsId == fsDictUnkId_) {
